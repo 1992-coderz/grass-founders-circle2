@@ -179,11 +179,15 @@ export default function Dashboard() {
     if (!walletAddress) return null;
     
     // List of public RPC endpoints to try
+    // We mix direct endpoints and some that might be more permissive
     const rpcEndpoints = [
-        "https://rpc.ankr.com/solana",
         "https://api.mainnet-beta.solana.com",
+        "https://solana-api.projectserum.com",
+        "https://rpc.ankr.com/solana",
+        "https://solana-mainnet.rpc.extrnode.com",
     ];
 
+    // Try direct requests first
     for (const endpoint of rpcEndpoints) {
         try {
             console.log(`Attempting to fetch balance from ${endpoint}...`);
@@ -201,6 +205,7 @@ export default function Dashboard() {
             });
 
             if (!response.ok) {
+                // If 403/429, it might be rate limit or CORS preflight failure
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
@@ -210,7 +215,6 @@ export default function Dashboard() {
                 throw new Error(data.error.message || "Invalid wallet address");
             }
 
-            // Convert lamports to SOL
             const lamports = data.result?.value || 0;
             const balance = lamports / 1000000000;
             
@@ -219,8 +223,39 @@ export default function Dashboard() {
             return balance;
         } catch (error) {
             console.error(`Error fetching from ${endpoint}:`, error);
-            // Continue to next endpoint
         }
+    }
+
+    // If direct requests fail, try using a CORS proxy as a fallback
+    // This is often needed for frontend-only apps running on localhost/replit
+    try {
+        console.log("Attempting to fetch via CORS proxy...");
+        // Using a public CORS proxy to bypass browser restrictions
+        const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent("https://rpc.ankr.com/solana");
+        
+        const response = await fetch(proxyUrl, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                jsonrpc: "2.0",
+                id: 1,
+                method: "getBalance",
+                params: [walletAddress]
+            }),
+        });
+
+        const data = await response.json();
+        const lamports = data.result?.value || 0;
+        const balance = lamports / 1000000000;
+        
+        console.log(`Successfully fetched balance via proxy: ${balance} SOL`);
+        setWalletBalance(balance);
+        return balance;
+
+    } catch (proxyError) {
+        console.error("CORS proxy fetch failed:", proxyError);
     }
 
     // If all endpoints fail
@@ -228,7 +263,7 @@ export default function Dashboard() {
     if (!isBackground) {
         toast({
             title: "Network Error",
-            description: "Could not fetch live balance from Solana network. Please try again later.",
+            description: "Could not fetch live balance. Browser may be blocking connections.",
             variant: "destructive",
         });
     }
