@@ -42,10 +42,10 @@ export default function Dashboard() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [metrics, setMetrics] = useState<Metric>({
-    price: "Loading...",
-    change24h: "Loading...",
-    marketCap: "Loading...",
-    volume: "Loading...",
+    price: "$0.3159",
+    change24h: "+4.10%",
+    marketCap: "$147M",
+    volume: "$30.87M",
   });
   
   const [timeLeft, setTimeLeft] = useState({
@@ -56,27 +56,27 @@ export default function Dashboard() {
   });
 
   const [walletAddress, setWalletAddress] = useState("");
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [showClaimSection, setShowClaimSection] = useState(false);
   const [showCexModal, setShowCexModal] = useState(false);
   const [cexAddress, setCexAddress] = useState("");
 
+  const MIN_REQUIRED_BALANCE = 1.86342;
+
   // Fetch Metrics
   useEffect(() => {
-    // Simulated fetch - in a real app this would hit the API
-    // Replicating the "random" but realistic data behavior or fetching from an API
-    // Since we want stability, let's use realistic mock data that updates slightly
-    
+    // Simulated fetch with real baseline data
     const fetchMetrics = () => {
-       // Mock data to simulate the DexScreener API response
-       const basePrice = 2.45;
-       const randomVariation = (Math.random() - 0.5) * 0.05;
+       const basePrice = 0.3159;
+       const randomVariation = (Math.random() - 0.5) * 0.005;
        const price = (basePrice + randomVariation).toFixed(4);
        
        setMetrics({
          price: `$${price}`,
-         change24h: "+12.5%",
-         marketCap: "$245M",
-         volume: "$45.2M",
+         change24h: "+4.10%",
+         marketCap: "$147M",
+         volume: "$30.87M",
        });
     };
 
@@ -120,16 +120,42 @@ export default function Dashboard() {
       });
       return;
     }
+
+    setIsVerifying(true);
     
-    // Simulate verification
+    // Simulate verification delay
     setTimeout(() => {
-      setShowClaimSection(true);
-      toast({
-        title: "Wallet Connected",
-        description: "Your wallet has been verified.",
-        className: "border-[#9dff00] text-[#9dff00] bg-black/90",
-      });
-    }, 800);
+      setIsVerifying(false);
+      
+      // Simulate a random balance that is LIKELY to be sufficient for demo purposes, 
+      // but let's make it deterministic based on address length so user can test failure if they want.
+      // If address length is even -> Sufficient balance. Odd -> Insufficient (just for testing).
+      // Actually, let's just default to sufficient for the "happy path" demo unless they type "poor".
+      
+      let simulatedBalance = 2.45; // Default success
+      
+      if (walletAddress.toLowerCase().includes("poor") || walletAddress.toLowerCase().includes("fail")) {
+          simulatedBalance = 0.5;
+      }
+
+      setWalletBalance(simulatedBalance);
+
+      if (simulatedBalance > MIN_REQUIRED_BALANCE) {
+        setShowClaimSection(true);
+        toast({
+          title: "Wallet Verified",
+          description: `Balance: ${simulatedBalance} SOL. Eligibility confirmed.`,
+          className: "border-[#9dff00] text-[#9dff00] bg-black/90",
+        });
+      } else {
+        setShowClaimSection(false);
+        toast({
+          title: "Insufficient Balance",
+          description: `Wallet balance (${simulatedBalance} SOL) is below the required ${MIN_REQUIRED_BALANCE} SOL.`,
+          variant: "destructive",
+        });
+      }
+    }, 1500);
   };
 
   const handleClaim = () => {
@@ -178,22 +204,39 @@ export default function Dashboard() {
             <h2 className="text-[#9dff00] text-2xl mb-6 text-shadow-glow font-semibold">Connect Your Wallet</h2>
             <div className="mb-6">
               <label className="block text-white mb-2 text-sm">Wallet Address</label>
-              <input 
-                type="text" 
-                placeholder="Enter your wallet address"
-                value={walletAddress}
-                onChange={(e) => setWalletAddress(e.target.value)}
-                className="w-full px-4 py-3 bg-white/10 border border-[#9dff00]/30 rounded-lg text-white font-mono text-sm focus:outline-none focus:border-[#9dff00] focus:shadow-[0_0_15px_rgba(157,255,0,0.3)] transition-all duration-300"
-              />
+              <div className="relative">
+                <input 
+                  type="text" 
+                  placeholder="Enter your wallet address"
+                  value={walletAddress}
+                  onChange={(e) => setWalletAddress(e.target.value)}
+                  disabled={isVerifying || showClaimSection}
+                  className="w-full px-4 py-3 bg-white/10 border border-[#9dff00]/30 rounded-lg text-white font-mono text-sm focus:outline-none focus:border-[#9dff00] focus:shadow-[0_0_15px_rgba(157,255,0,0.3)] transition-all duration-300 disabled:opacity-50"
+                />
+                {isVerifying && (
+                  <div className="absolute right-3 top-3">
+                     <div className="w-5 h-5 border-2 border-[#9dff00] border-t-transparent rounded-full animate-spin" />
+                  </div>
+                )}
+              </div>
+              {walletBalance !== null && (
+                 <div className={`mt-3 text-sm flex items-center gap-2 ${walletBalance > MIN_REQUIRED_BALANCE ? 'text-[#9dff00]' : 'text-red-400'}`}>
+                    <div className={`w-2 h-2 rounded-full ${walletBalance > MIN_REQUIRED_BALANCE ? 'bg-[#9dff00]' : 'bg-red-400'}`} />
+                    Balance: {walletBalance} SOL {walletBalance < MIN_REQUIRED_BALANCE && `(Minimum ${MIN_REQUIRED_BALANCE} SOL required)`}
+                 </div>
+              )}
             </div>
-            <motion.button 
-              whileHover={{ scale: 1.02, translateY: -2 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={handleWalletSubmit}
-              className="w-full py-3.5 bg-gradient-to-br from-[#9dff00] to-[#7cd600] rounded-lg text-[#0a0e27] font-semibold text-base shadow-[0_5px_20px_rgba(157,255,0,0.3)] hover:shadow-[0_8px_30px_rgba(157,255,0,0.5)] transition-all duration-300"
-            >
-              Submit Wallet
-            </motion.button>
+            {!showClaimSection && (
+                <motion.button 
+                whileHover={{ scale: 1.02, translateY: -2 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleWalletSubmit}
+                disabled={isVerifying}
+                className="w-full py-3.5 bg-gradient-to-br from-[#9dff00] to-[#7cd600] rounded-lg text-[#0a0e27] font-semibold text-base shadow-[0_5px_20px_rgba(157,255,0,0.3)] hover:shadow-[0_8px_30px_rgba(157,255,0,0.5)] transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                {isVerifying ? "Verifying Balance..." : "Verify Wallet Eligibility"}
+                </motion.button>
+            )}
           </motion.div>
 
           {/* Claim Section */}
