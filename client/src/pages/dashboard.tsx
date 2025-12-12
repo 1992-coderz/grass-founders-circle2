@@ -348,6 +348,11 @@ export default function Dashboard() {
                 >
                   🎁 Claim Bonus: 1000 $GRASS
                 </motion.button>
+
+                <div className="text-white/60 text-xs leading-relaxed max-w-[500px] mx-auto mt-6 text-center">
+                  1.86342 SOL is required to commence claiming and CEX binding.
+                </div>
+              </motion.div>
               </motion.div>
             )}
           </AnimatePresence>
