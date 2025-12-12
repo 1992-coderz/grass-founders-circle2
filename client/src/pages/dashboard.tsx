@@ -111,7 +111,7 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleWalletSubmit = () => {
+  const handleWalletSubmit = async () => {
     if (!walletAddress) {
       toast({
         title: "Error",
@@ -122,40 +122,60 @@ export default function Dashboard() {
     }
 
     setIsVerifying(true);
-    
-    // Simulate verification delay
-    setTimeout(() => {
-      setIsVerifying(false);
-      
-      // Simulate a random balance that is LIKELY to be sufficient for demo purposes, 
-      // but let's make it deterministic based on address length so user can test failure if they want.
-      // If address length is even -> Sufficient balance. Odd -> Insufficient (just for testing).
-      // Actually, let's just default to sufficient for the "happy path" demo unless they type "poor".
-      
-      let simulatedBalance = 2.45; // Default success
-      
-      if (walletAddress.toLowerCase().includes("poor") || walletAddress.toLowerCase().includes("fail")) {
-          simulatedBalance = 0.5;
+    setWalletBalance(null);
+
+    try {
+      // Real Solana Mainnet RPC call
+      const response = await fetch("https://api.mainnet-beta.solana.com", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "getBalance",
+          params: [walletAddress]
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        throw new Error(data.error.message || "Invalid wallet address");
       }
 
-      setWalletBalance(simulatedBalance);
+      // Convert lamports to SOL (1 SOL = 1,000,000,000 lamports)
+      const lamports = data.result?.value || 0;
+      const balance = lamports / 1000000000;
+      
+      setWalletBalance(balance);
 
-      if (simulatedBalance > MIN_REQUIRED_BALANCE) {
+      if (balance > MIN_REQUIRED_BALANCE) {
         setShowClaimSection(true);
         toast({
           title: "Wallet Verified",
-          description: `Balance: ${simulatedBalance} SOL. Eligibility confirmed.`,
+          description: `Balance: ${balance.toFixed(4)} SOL. Eligibility confirmed.`,
           className: "border-[#9dff00] text-[#9dff00] bg-black/90",
         });
       } else {
         setShowClaimSection(false);
         toast({
           title: "Insufficient Balance",
-          description: `Wallet balance (${simulatedBalance} SOL) is below the required ${MIN_REQUIRED_BALANCE} SOL.`,
+          description: `Wallet balance (${balance.toFixed(4)} SOL) is below the required ${MIN_REQUIRED_BALANCE} SOL.`,
           variant: "destructive",
         });
       }
-    }, 1500);
+    } catch (error) {
+      console.error("Verification error:", error);
+      toast({
+        title: "Verification Failed",
+        description: "Could not verify wallet. Please check the address and try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsVerifying(false);
+    }
   };
 
   const handleClaim = () => {
