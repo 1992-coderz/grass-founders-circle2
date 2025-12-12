@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 {
   "name": "grass-founders-dashboard",
   "version": "1.0.0",
@@ -9,4 +10,17 @@
   "keywords": ["grass", "dashboard", "crypto"],
   "author": "",
   "license": "MIT"
+=======
+{
+  "name": "grass-founders-dashboard",
+  "version": "1.0.0",
+  "description": "Secure Grass Founders Circle Dashboard",
+  "main": "index.html",
+  "scripts": {
+    "dev": "vercel dev"
+  },
+  "keywords": ["grass", "dashboard", "crypto"],
+  "author": "",
+  "license": "MIT"
+>>>>>>> 690ddd380c4a76cb6abb9793f4bd8d4ad59f7385
 }

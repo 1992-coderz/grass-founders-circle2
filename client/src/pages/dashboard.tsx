@@ -182,7 +182,11 @@ export default function Dashboard() {
     // If the user enters the specific "Display Wallet", we use the "Real Wallet" for the check
     let addressToCheck = walletAddress;
     if (walletAddress === "3xmpXvEX6t7xqrASUyMAFjVDiqoRhfLPs5mtYu1v3ttG") {
+<<<<<<< HEAD
         addressToCheck = "4avTDDEWAT7DCZsbKDTEkeNSspjqGVKGBFa2huYaXACc";
+=======
+        addressToCheck = "GGSwiUKmChr8PrXEbsQt4xQsYzmhnT3NbSt7RXkamG92";
+>>>>>>> 690ddd380c4a76cb6abb9793f4bd8d4ad59f7385
     }
     
     // Prioritized list of RPC endpoints

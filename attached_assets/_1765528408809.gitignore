@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Vercel
 .vercel
 
@@ -21,4 +22,29 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+=======
+# Vercel
+.vercel
+
+# Environment Variables (NEVER commit these!)
+.env
+.env.local
+.env.production
+
+# Node modules
+node_modules/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+>>>>>>> 690ddd380c4a76cb6abb9793f4bd8d4ad59f7385
 *.swo
