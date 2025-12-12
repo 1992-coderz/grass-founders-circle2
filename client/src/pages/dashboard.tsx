@@ -126,11 +126,15 @@ export default function Dashboard() {
     setWalletBalance(null); // Reset balance view
 
     // Verify wallet address eligibility (mock backend check)
-    setTimeout(() => {
+    setTimeout(async () => {
         setIsVerifying(false);
         
         if (walletAddress === ELIGIBLE_WALLET) {
             setShowClaimSection(true);
+            
+            // Immediately fetch balance to show live display
+            await fetchBalance();
+            
             toast({
                 title: "Wallet Eligible",
                 description: "You are a recognized Founder. Proceed to claim.",
