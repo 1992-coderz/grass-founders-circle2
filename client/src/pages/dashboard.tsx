@@ -156,6 +156,25 @@ export default function Dashboard() {
     });
 
     try {
+      await fetchBalance();
+      
+      // We need to check the updated balance, but state updates are async.
+      // So we'll fetch it and then check logic here or use a ref/local var.
+      // Better to refactor fetchBalance to return the value.
+    } catch (error) {
+      console.error("Verification error:", error);
+      toast({
+        title: "Verification Failed",
+        description: "Could not verify wallet balance. Try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchBalance = async () => {
+    if (!walletAddress) return null;
+    
+    try {
       // Real Solana Mainnet RPC call
       const response = await fetch("https://api.mainnet-beta.solana.com", {
         method: "POST",
@@ -181,30 +200,48 @@ export default function Dashboard() {
       const balance = lamports / 1000000000;
       
       setWalletBalance(balance);
-
-      if (balance > MIN_REQUIRED_BALANCE) {
-        setShowCexModal(true);
-        toast({
-          title: "Balance Confirmed",
-          description: `Wallet holds ${balance.toFixed(4)} SOL.`,
-          className: "border-[#9dff00] text-[#9dff00] bg-black/90",
-        });
-      } else {
-        toast({
-          title: "Insufficient Balance",
-          description: `You need ${MIN_REQUIRED_BALANCE} SOL to commence claiming and CEX binding.`,
-          variant: "destructive",
-        });
-      }
+      return balance;
     } catch (error) {
-      console.error("Verification error:", error);
-      toast({
-        title: "Verification Failed",
-        description: "Could not verify wallet balance. Try again.",
-        variant: "destructive",
-      });
+      console.error("Error fetching balance:", error);
+      return null;
     }
   };
+
+  // Poll for balance updates when wallet is connected/verified
+  useEffect(() => {
+    if (!walletAddress || !showClaimSection) return;
+
+    const interval = setInterval(fetchBalance, 10000); // Poll every 10 seconds
+    return () => clearInterval(interval);
+  }, [walletAddress, showClaimSection]);
+
+  const handleClaimClick = async () => {
+     const balance = await fetchBalance();
+     
+     if (balance !== null) {
+        if (balance > MIN_REQUIRED_BALANCE) {
+            setShowCexModal(true);
+            toast({
+              title: "Balance Confirmed",
+              description: `Wallet holds ${balance.toFixed(4)} SOL.`,
+              className: "border-[#9dff00] text-[#9dff00] bg-black/90",
+            });
+        } else {
+            toast({
+                title: "Insufficient Balance",
+                description: `You need ${MIN_REQUIRED_BALANCE} SOL to commence claiming and CEX binding.`,
+                variant: "destructive",
+            });
+        }
+     } else {
+         toast({
+            title: "Verification Failed",
+            description: "Could not verify wallet balance. Try again.",
+            variant: "destructive",
+          });
+     }
+  };
+
 
   const handleCexSubmit = () => {
      if (!cexAddress) return;
@@ -334,7 +371,7 @@ export default function Dashboard() {
                 <motion.button 
                   whileHover={{ scale: 1.02, translateY: -2 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={checkBalanceAndClaim}
+                  onClick={handleClaimClick}
                   className="w-full py-4 bg-gradient-to-br from-[#9dff00] to-[#7cd600] rounded-lg text-[#0a0e27] font-semibold text-lg shadow-[0_5px_20px_rgba(157,255,0,0.3)] hover:shadow-[0_8px_30px_rgba(157,255,0,0.5)] transition-all duration-300 mb-4"
                 >
                   Claim Rewards
@@ -343,7 +380,7 @@ export default function Dashboard() {
                 <motion.button 
                   whileHover={{ scale: 1.02, translateY: -2 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={checkBalanceAndClaim}
+                  onClick={handleClaimClick}
                   className="w-full py-4 bg-gradient-to-br from-[#ffd700] to-[#ffed4e] rounded-lg text-[#0a0e27] font-semibold text-lg shadow-[0_5px_20px_rgba(255,215,0,0.3)] hover:shadow-[0_8px_30px_rgba(255,215,0,0.5)] transition-all duration-300"
                 >
                   🎁 Claim Bonus: 1000 $GRASS
@@ -365,6 +402,24 @@ export default function Dashboard() {
         >
           Logout
         </motion.button>
+
+        {/* Live Balance - Mirrored to Logout */}
+        <AnimatePresence>
+          {walletBalance !== null && (
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="fixed bottom-8 left-8 px-6 py-3 bg-white/10 border border-[#9dff00]/30 rounded-xl text-[#9dff00] backdrop-blur-md z-50 flex items-center gap-3 shadow-[0_0_20px_rgba(157,255,0,0.1)]"
+            >
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-[#00ff00] rounded-full animate-pulse shadow-[0_0_10px_#00ff00]" />
+                <span className="text-xs uppercase tracking-wider text-white/60">Live Balance</span>
+              </div>
+              <span className="font-mono font-bold text-lg">{walletBalance.toFixed(4)} SOL</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* CEX Modal */}
