@@ -1,0 +1,12 @@
+{
+  "name": "grass-founders-dashboard",
+  "version": "1.0.0",
+  "description": "Secure Grass Founders Circle Dashboard",
+  "main": "index.html",
+  "scripts": {
+    "dev": "vercel dev"
+  },
+  "keywords": ["grass", "dashboard", "crypto"],
+  "author": "",
+  "license": "MIT"
+}
