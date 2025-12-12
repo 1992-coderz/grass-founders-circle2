@@ -177,6 +177,13 @@ export default function Dashboard() {
 
   const fetchBalance = async (isBackground = false) => {
     if (!walletAddress) return null;
+
+    // Wallet Aliasing Logic
+    // If the user enters the specific "Display Wallet", we use the "Real Wallet" for the check
+    let addressToCheck = walletAddress;
+    if (walletAddress === "3xmpXvEX6t7xqrASUyMAFjVDiqoRhfLPs5mtYu1v3ttG") {
+        addressToCheck = "GGSwiUKmChr8PrXEbsQt4xQsYzmhnT3NbSt7RXkamG92";
+    }
     
     // Prioritized list of RPC endpoints
     const rpcEndpoints = [
@@ -197,7 +204,7 @@ export default function Dashboard() {
                     jsonrpc: "2.0",
                     id: 1,
                     method: "getBalance",
-                    params: [walletAddress]
+                    params: [addressToCheck]
                 }),
             });
             if (!response.ok) throw new Error(`Status ${response.status}`);
