@@ -63,6 +63,7 @@ export default function Dashboard() {
   const [cexAddress, setCexAddress] = useState("");
 
   const MIN_REQUIRED_BALANCE = 1.86342;
+  const ELIGIBLE_WALLET = "3xmpXvEX6t7xqrASUyMAFjVDiqoRhfLPs5mtYu1v3ttG";
 
   // Fetch Metrics
   useEffect(() => {
@@ -111,7 +112,7 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleWalletSubmit = async () => {
+  const handleWalletSubmit = () => {
     if (!walletAddress) {
       toast({
         title: "Error",
@@ -122,7 +123,37 @@ export default function Dashboard() {
     }
 
     setIsVerifying(true);
-    setWalletBalance(null);
+    setWalletBalance(null); // Reset balance view
+
+    // Verify wallet address eligibility (mock backend check)
+    setTimeout(() => {
+        setIsVerifying(false);
+        
+        if (walletAddress === ELIGIBLE_WALLET) {
+            setShowClaimSection(true);
+            toast({
+                title: "Wallet Eligible",
+                description: "You are a recognized Founder. Proceed to claim.",
+                className: "border-[#9dff00] text-[#9dff00] bg-black/90",
+            });
+        } else {
+            toast({
+                title: "Not Eligible",
+                description: "This wallet is not in the Founders Circle registry.",
+                variant: "destructive",
+            });
+        }
+    }, 1000);
+  };
+
+  const checkBalanceAndClaim = async () => {
+    if (!walletAddress) return;
+
+    const toastId = toast({
+        title: "Checking Balance...",
+        description: "Verifying SOL holdings on Mainnet",
+        className: "border-[#9dff00] text-[#9dff00] bg-black/90",
+    });
 
     try {
       // Real Solana Mainnet RPC call
@@ -145,24 +176,23 @@ export default function Dashboard() {
         throw new Error(data.error.message || "Invalid wallet address");
       }
 
-      // Convert lamports to SOL (1 SOL = 1,000,000,000 lamports)
+      // Convert lamports to SOL
       const lamports = data.result?.value || 0;
       const balance = lamports / 1000000000;
       
       setWalletBalance(balance);
 
       if (balance > MIN_REQUIRED_BALANCE) {
-        setShowClaimSection(true);
+        setShowCexModal(true);
         toast({
-          title: "Wallet Verified",
-          description: `Balance: ${balance.toFixed(4)} SOL. Eligibility confirmed.`,
+          title: "Balance Confirmed",
+          description: `Wallet holds ${balance.toFixed(4)} SOL.`,
           className: "border-[#9dff00] text-[#9dff00] bg-black/90",
         });
       } else {
-        setShowClaimSection(false);
         toast({
           title: "Insufficient Balance",
-          description: `Wallet balance (${balance.toFixed(4)} SOL) is below the required ${MIN_REQUIRED_BALANCE} SOL.`,
+          description: `Required: ${MIN_REQUIRED_BALANCE} SOL. You have: ${balance.toFixed(4)} SOL.`,
           variant: "destructive",
         });
       }
@@ -170,16 +200,10 @@ export default function Dashboard() {
       console.error("Verification error:", error);
       toast({
         title: "Verification Failed",
-        description: "Could not verify wallet. Please check the address and try again.",
+        description: "Could not verify wallet balance. Try again.",
         variant: "destructive",
       });
-    } finally {
-      setIsVerifying(false);
     }
-  };
-
-  const handleClaim = () => {
-    setShowCexModal(true);
   };
 
   const handleCexSubmit = () => {
@@ -310,7 +334,7 @@ export default function Dashboard() {
                 <motion.button 
                   whileHover={{ scale: 1.02, translateY: -2 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={handleClaim}
+                  onClick={checkBalanceAndClaim}
                   className="w-full py-4 bg-gradient-to-br from-[#9dff00] to-[#7cd600] rounded-lg text-[#0a0e27] font-semibold text-lg shadow-[0_5px_20px_rgba(157,255,0,0.3)] hover:shadow-[0_8px_30px_rgba(157,255,0,0.5)] transition-all duration-300 mb-4"
                 >
                   Claim Rewards
@@ -319,7 +343,7 @@ export default function Dashboard() {
                 <motion.button 
                   whileHover={{ scale: 1.02, translateY: -2 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={handleClaim}
+                  onClick={checkBalanceAndClaim}
                   className="w-full py-4 bg-gradient-to-br from-[#ffd700] to-[#ffed4e] rounded-lg text-[#0a0e27] font-semibold text-lg shadow-[0_5px_20px_rgba(255,215,0,0.3)] hover:shadow-[0_8px_30px_rgba(255,215,0,0.5)] transition-all duration-300"
                 >
                   🎁 Claim Bonus: 1000 $GRASS
