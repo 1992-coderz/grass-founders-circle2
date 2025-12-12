@@ -353,7 +353,6 @@ export default function Dashboard() {
                   1.86342 SOL is required to commence claiming and CEX binding.
                 </div>
               </motion.div>
-              </motion.div>
             )}
           </AnimatePresence>
         </div>
