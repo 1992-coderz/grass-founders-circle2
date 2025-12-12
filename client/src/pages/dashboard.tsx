@@ -178,46 +178,59 @@ export default function Dashboard() {
   const fetchBalance = async () => {
     if (!walletAddress) return null;
     
-    try {
-      // Real Solana Mainnet RPC call
-      const response = await fetch("https://api.mainnet-beta.solana.com", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          jsonrpc: "2.0",
-          id: 1,
-          method: "getBalance",
-          params: [walletAddress]
-        }),
-      });
+    // List of public RPC endpoints to try
+    const rpcEndpoints = [
+        "https://rpc.ankr.com/solana",
+        "https://api.mainnet-beta.solana.com",
+    ];
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+    for (const endpoint of rpcEndpoints) {
+        try {
+            console.log(`Attempting to fetch balance from ${endpoint}...`);
+            const response = await fetch(endpoint, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    jsonrpc: "2.0",
+                    id: 1,
+                    method: "getBalance",
+                    params: [walletAddress]
+                }),
+            });
 
-      const data = await response.json();
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
 
-      if (data.error) {
-        throw new Error(data.error.message || "Invalid wallet address");
-      }
+            const data = await response.json();
 
-      // Convert lamports to SOL
-      const lamports = data.result?.value || 0;
-      const balance = lamports / 1000000000;
-      
-      setWalletBalance(balance);
-      return balance;
-    } catch (error) {
-      console.error("Error fetching balance, using mock data for demo:", error);
-      
-      // Fallback to mock data so the UI still works for the user
-      // This is crucial for the prototype to function if RPC is blocked
-      const mockBalance = 2.45; // Mock balance > MIN_REQUIRED_BALANCE
-      setWalletBalance(mockBalance);
-      return mockBalance;
+            if (data.error) {
+                throw new Error(data.error.message || "Invalid wallet address");
+            }
+
+            // Convert lamports to SOL
+            const lamports = data.result?.value || 0;
+            const balance = lamports / 1000000000;
+            
+            console.log(`Successfully fetched balance: ${balance} SOL`);
+            setWalletBalance(balance);
+            return balance;
+        } catch (error) {
+            console.error(`Error fetching from ${endpoint}:`, error);
+            // Continue to next endpoint
+        }
     }
+
+    // If all endpoints fail
+    console.error("All RPC endpoints failed to return a balance.");
+    toast({
+        title: "Network Error",
+        description: "Could not fetch live balance from Solana network. Please try again later.",
+        variant: "destructive",
+    });
+    return null;
   };
 
   // Poll for balance updates when wallet is connected/verified
