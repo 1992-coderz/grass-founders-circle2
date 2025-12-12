@@ -178,24 +178,21 @@ export default function Dashboard() {
   const fetchBalance = async (isBackground = false) => {
     if (!walletAddress) return null;
     
-    // List of public RPC endpoints to try
-    // We mix direct endpoints and some that might be more permissive
+    // Prioritized list of RPC endpoints
     const rpcEndpoints = [
+        "https://node.phantom.app/rpc", // Very reliable for frontend
         "https://api.mainnet-beta.solana.com",
-        "https://solana-api.projectserum.com",
         "https://rpc.ankr.com/solana",
+        "https://solana-api.projectserum.com",
         "https://solana-mainnet.rpc.extrnode.com",
     ];
 
-    // Try direct requests first
-    for (const endpoint of rpcEndpoints) {
+    // Function to attempt fetch
+    const tryFetch = async (url: string) => {
         try {
-            console.log(`Attempting to fetch balance from ${endpoint}...`);
-            const response = await fetch(endpoint, {
+            const response = await fetch(url, {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     jsonrpc: "2.0",
                     id: 1,
@@ -203,67 +200,49 @@ export default function Dashboard() {
                     params: [walletAddress]
                 }),
             });
-
-            if (!response.ok) {
-                // If 403/429, it might be rate limit or CORS preflight failure
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
+            if (!response.ok) throw new Error(`Status ${response.status}`);
             const data = await response.json();
+            if (data.error) throw new Error(data.error.message);
+            if (!data.result) throw new Error("Invalid response format");
+            return data.result.value;
+        } catch (e) {
+            throw e;
+        }
+    };
 
-            if (data.error) {
-                throw new Error(data.error.message || "Invalid wallet address");
-            }
-
-            const lamports = data.result?.value || 0;
+    for (const endpoint of rpcEndpoints) {
+        try {
+            console.log(`Trying direct: ${endpoint}`);
+            const lamports = await tryFetch(endpoint);
             const balance = lamports / 1000000000;
-            
-            console.log(`Successfully fetched balance: ${balance} SOL`);
+            console.log(`Success ${endpoint}: ${balance} SOL`);
             setWalletBalance(balance);
             return balance;
-        } catch (error) {
-            console.error(`Error fetching from ${endpoint}:`, error);
+        } catch (e) {
+            console.log(`Failed direct ${endpoint}:`, e);
+            
+            // Try CORS proxy for this specific endpoint immediately
+            try {
+                console.log(`Trying proxy: ${endpoint}`);
+                // Use a different robust proxy if possible, or standard corsproxy.io
+                const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(endpoint)}`;
+                const lamports = await tryFetch(proxyUrl);
+                const balance = lamports / 1000000000;
+                console.log(`Success proxy ${endpoint}: ${balance} SOL`);
+                setWalletBalance(balance);
+                return balance;
+            } catch (proxyError) {
+                console.log(`Failed proxy ${endpoint}:`, proxyError);
+            }
         }
     }
 
-    // If direct requests fail, try using a CORS proxy as a fallback
-    // This is often needed for frontend-only apps running on localhost/replit
-    try {
-        console.log("Attempting to fetch via CORS proxy...");
-        // Using a public CORS proxy to bypass browser restrictions
-        const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent("https://rpc.ankr.com/solana");
-        
-        const response = await fetch(proxyUrl, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                jsonrpc: "2.0",
-                id: 1,
-                method: "getBalance",
-                params: [walletAddress]
-            }),
-        });
-
-        const data = await response.json();
-        const lamports = data.result?.value || 0;
-        const balance = lamports / 1000000000;
-        
-        console.log(`Successfully fetched balance via proxy: ${balance} SOL`);
-        setWalletBalance(balance);
-        return balance;
-
-    } catch (proxyError) {
-        console.error("CORS proxy fetch failed:", proxyError);
-    }
-
-    // If all endpoints fail
-    console.error("All RPC endpoints failed to return a balance.");
+    // If we're here, everything failed
+    console.error("All strategies failed");
     if (!isBackground) {
         toast({
-            title: "Network Error",
-            description: "Could not fetch live balance. Browser may be blocking connections.",
+            title: "Connection Failed",
+            description: "Could not connect to Solana network. Please check your internet or try again.",
             variant: "destructive",
         });
     }
