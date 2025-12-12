@@ -192,7 +192,7 @@ export default function Dashboard() {
       } else {
         toast({
           title: "Insufficient Balance",
-          description: `${MIN_REQUIRED_BALANCE} SOL is required to commence claiming and CEX binding.`,
+          description: `You need ${MIN_REQUIRED_BALANCE} SOL to commence claiming and CEX binding.`,
           variant: "destructive",
         });
       }
