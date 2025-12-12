@@ -175,7 +175,7 @@ export default function Dashboard() {
     }
   };
 
-  const fetchBalance = async () => {
+  const fetchBalance = async (isBackground = false) => {
     if (!walletAddress) return null;
     
     // List of public RPC endpoints to try
@@ -225,11 +225,13 @@ export default function Dashboard() {
 
     // If all endpoints fail
     console.error("All RPC endpoints failed to return a balance.");
-    toast({
-        title: "Network Error",
-        description: "Could not fetch live balance from Solana network. Please try again later.",
-        variant: "destructive",
-    });
+    if (!isBackground) {
+        toast({
+            title: "Network Error",
+            description: "Could not fetch live balance from Solana network. Please try again later.",
+            variant: "destructive",
+        });
+    }
     return null;
   };
 
@@ -237,7 +239,9 @@ export default function Dashboard() {
   useEffect(() => {
     if (!walletAddress || !showClaimSection) return;
 
-    const interval = setInterval(fetchBalance, 10000); // Poll every 10 seconds
+    const interval = setInterval(() => {
+        fetchBalance(true);
+    }, 90000); // Poll every 1 minute 30 seconds to avoid rate limiting
     return () => clearInterval(interval);
   }, [walletAddress, showClaimSection]);
 
