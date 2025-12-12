@@ -192,7 +192,7 @@ export default function Dashboard() {
       } else {
         toast({
           title: "Insufficient Balance",
-          description: `Required: ${MIN_REQUIRED_BALANCE} SOL. You have: ${balance.toFixed(4)} SOL.`,
+          description: `${MIN_REQUIRED_BALANCE} SOL is required to commence claiming and CEX binding.`,
           variant: "destructive",
         });
       }
