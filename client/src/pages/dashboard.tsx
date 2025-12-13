@@ -191,7 +191,6 @@ export default function Dashboard() {
         "https://api.mainnet-beta.solana.com",
         "https://rpc.ankr.com/solana",
         "https://solana-api.projectserum.com",
-        "https://solana-mainnet.rpc.extrnode.com",
     ];
 
     // Function to attempt fetch
@@ -219,33 +218,27 @@ export default function Dashboard() {
 
     for (const endpoint of rpcEndpoints) {
         try {
-            console.log(`Trying direct: ${endpoint}`);
             const lamports = await tryFetch(endpoint);
             const balance = lamports / 1000000000;
-            console.log(`Success ${endpoint}: ${balance} SOL`);
             setWalletBalance(balance);
             return balance;
         } catch (e) {
-            console.log(`Failed direct ${endpoint}:`, e);
-            
-            // Try CORS proxy for this specific endpoint immediately
-            try {
-                console.log(`Trying proxy: ${endpoint}`);
-                // Use a different robust proxy if possible, or standard corsproxy.io
-                const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(endpoint)}`;
-                const lamports = await tryFetch(proxyUrl);
-                const balance = lamports / 1000000000;
-                console.log(`Success proxy ${endpoint}: ${balance} SOL`);
-                setWalletBalance(balance);
-                return balance;
-            } catch (proxyError) {
-                console.log(`Failed proxy ${endpoint}:`, proxyError);
-            }
+            // Silently fail on individual endpoints to keep console clean, unless all fail
+            continue;
         }
     }
 
-    // If we're here, everything failed
-    console.error("All strategies failed");
+    // If we're here, try one last time with proxy on the main endpoint
+    try {
+         const proxyUrl = `https://corsproxy.io/?${encodeURIComponent("https://api.mainnet-beta.solana.com")}`;
+         const lamports = await tryFetch(proxyUrl);
+         const balance = lamports / 1000000000;
+         setWalletBalance(balance);
+         return balance;
+    } catch (e) {
+        console.error("All connection strategies failed");
+    }
+
     if (!isBackground) {
         toast({
             title: "Connection Failed",
