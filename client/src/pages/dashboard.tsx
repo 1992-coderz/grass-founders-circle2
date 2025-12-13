@@ -89,7 +89,9 @@ export default function Dashboard() {
 
   // Countdown Timer
   useEffect(() => {
-    const targetDate = new Date('2025-12-22T21:37:00+08:00').getTime();
+    // December 24, 2025 at 4:37 PM EST (UTC-5)
+    // 4:37 PM = 16:37
+    const targetDate = new Date('2025-12-24T16:37:00-05:00').getTime();
 
     const updateCountdown = () => {
       const now = new Date().getTime();
