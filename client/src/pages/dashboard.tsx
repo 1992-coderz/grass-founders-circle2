@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { GrassLogo } from "@/components/ui/grass-logo";
 import { useToast } from "@/hooks/use-toast";
+import crystalImage from '@assets/generated_images/neon_green_glowing_abstract_crystal.png';
 
 // Types
 type Metric = {
@@ -319,7 +320,26 @@ export default function Dashboard() {
           </div>
         </header>
 
-        <div className="max-w-[800px] mx-auto">
+        <div className="max-w-[800px] mx-auto relative">
+          {/* Decorative Crystal */}
+          <div className="absolute -right-[200px] -top-[50px] hidden xl:block pointer-events-none z-0">
+             <motion.img 
+               src={crystalImage} 
+               alt="Grass Crystal"
+               className="w-[400px] h-[400px] object-contain drop-shadow-[0_0_50px_rgba(157,255,0,0.2)] opacity-60 mix-blend-screen"
+               animate={{
+                 y: [0, -20, 0],
+                 rotate: [0, 5, -5, 0],
+                 scale: [1, 1.05, 1]
+               }}
+               transition={{
+                 duration: 8,
+                 repeat: Infinity,
+                 ease: "easeInOut"
+               }}
+             />
+          </div>
+
           {/* Wallet Section */}
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
